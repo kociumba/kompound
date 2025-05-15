@@ -348,7 +348,7 @@ level_order_node_no_context :: proc(root: ^node($T), visit: proc(node: ^node(T))
 	v := visit
 	level_order_node_context(
 		root,
-		proc(node: node(T), ctx: ^proc(node: ^node(T)) -> (stop: bool)) -> (stop: bool) {
+		proc(node: ^node(T), ctx: ^proc(node: ^node(T)) -> (stop: bool)) -> (stop: bool) {
 			return ctx^(node)
 		},
 		&v,
