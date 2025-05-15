@@ -196,7 +196,7 @@ in_order :: proc {
 
 in_order_data_no_context :: proc(node: ^node($T), visit: proc(data: T) -> (stop: bool)) {
 	v := visit
-	in_order_data_context(node, proc(data: T, ctx: proc(data: T) -> (stop: bool)) -> (stop: bool) {
+	in_order_data_context(node, proc(data: T, ctx: ^proc(data: T) -> (stop: bool)) -> (stop: bool) {
 			return ctx^(data)
 		}, &v)
 }
@@ -219,7 +219,7 @@ in_order_node_no_context :: proc(node: ^node($T), visit: proc(node: ^node(T)) ->
 	v := visit
 	in_order_node_context(
 		node,
-		proc(node: ^node(T), ctx: proc(node: ^node(T)) -> (stop: bool)) -> (stop: bool) {
+		proc(node: ^node(T), ctx: ^proc(node: ^node(T)) -> (stop: bool)) -> (stop: bool) {
 			return ctx^(node)
 		},
 		&v,
@@ -251,7 +251,7 @@ post_order_data_no_context :: proc(node: ^node($T), visit: proc(data: T) -> (sto
 	v := visit
 	post_order_data_context(
 		node,
-		proc(data: T, ctx: proc(data: T) -> (stop: bool)) -> (stop: bool) {
+		proc(data: T, ctx: ^proc(data: T) -> (stop: bool)) -> (stop: bool) {
 			return ctx^(data)
 		},
 		&v,
@@ -276,7 +276,7 @@ post_order_node_no_context :: proc(node: ^node($T), visit: proc(node: ^node(T)) 
 	v := visit
 	post_order_node_context(
 		node,
-		proc(node: ^node(T), ctx: proc(node: ^node(T)) -> (stop: bool)) -> (stop: bool) {
+		proc(node: ^node(T), ctx: ^proc(node: ^node(T)) -> (stop: bool)) -> (stop: bool) {
 			return ctx^(node)
 		},
 		&v,
@@ -312,8 +312,8 @@ level_order_data_no_context :: proc(root: ^node($T), visit: proc(data: T) -> (st
 	v := visit
 	level_order_data_context(
 		root,
-		proc(data: T, ctx: proc(data: T) -> (stop: bool)) -> (stop: bool) {
-			return ctx(data)
+		proc(data: T, ctx: ^proc(data: T) -> (stop: bool)) -> (stop: bool) {
+			return ctx^(data)
 		},
 		&v,
 	)
@@ -348,7 +348,7 @@ level_order_node_no_context :: proc(root: ^node($T), visit: proc(node: ^node(T))
 	v := visit
 	level_order_node_context(
 		root,
-		proc(node: node(T), ctx: proc(node: ^node(T)) -> (stop: bool)) -> (stop: bool) {
+		proc(node: node(T), ctx: ^proc(node: ^node(T)) -> (stop: bool)) -> (stop: bool) {
 			return ctx^(node)
 		},
 		&v,
