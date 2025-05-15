@@ -2,7 +2,10 @@
 
 This odin package contains a fully polymorphic binary tree written in pure odin. 
 
-The tree itself is very simple and consists of a sincle `node(T)` struct, but there are quite a few utility and general convinience functions.
+The tree itself is very simple and consists of a single `node(T)` struct, but there are quite a few utility and general convenience functions.
+
+> [!CAUTION]
+> The tree is allocated on the heap, so not calling `destroy_node` will leak memory, but this also means that a tree can be global.
 
 Simple usage looks something like:
 
