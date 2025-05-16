@@ -224,7 +224,7 @@ publish_many :: proc(bus: ^event_bus, data: ..$T) -> (err: Maybe(event_error)) {
 	sync.unlock(&bus.mu)
 
 	for event in data {
-		if err := publish(bus, subs, event); err != nil {return err}
+		if err := internal_publish(bus, subs, event); err != nil {return err}
 	}
 }
 
@@ -247,6 +247,9 @@ internal_publish :: proc(
 
 // returns an array of registered event typeids
 get_registered_events :: proc(bus: ^event_bus) -> (events: [dynamic]typeid) {
+    sync.lock(&bus.mu)
+	defer sync.unlock(&bus.mu)
+    
 	for event in bus.subscribers {
 		append(&events, event)
 	}

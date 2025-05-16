@@ -23,11 +23,11 @@ main :: proc() {
     bus := event.create_event_bus()
     defer event.destroy_event_bus(bus)
 
-    subsciber_context :: struct {
+    subscriber_context :: struct {
         call_count: int
     }
 
-    // if you need to persist satate throught scope changes, use a heap allocated context
+    // if you need to persist state throught scope changes, use a heap allocated context
     ctx := subscriber_context{
         call_count = 0
     }
@@ -35,7 +35,7 @@ main :: proc() {
     // a subscriber has to match this signature
     subscriber :: proc(data: any, ctx_ptr: rawptr) {
         event, ok := data.(event_struct)
-        if !ok {/* generally this should never happend but you should still check */}
+        if !ok { /* generally this should never happen, but it's good practice to check */ }
 
         ctx := (^subscriber_context)(ctx_ptr)
         // use your context and perform subscriber work
