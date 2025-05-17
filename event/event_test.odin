@@ -8,7 +8,8 @@ import "core:log"
 test_event_dispatch :: proc(t: ^testing.T) {
 	defer free_all(context.allocator)
 
-	bus := create_event_bus()
+	// bus := create_event_bus({.DEBUG_LOGGING})
+    bus := create_event_bus()
 	defer destroy_event_bus(bus)
 
 	// Define event types
@@ -61,7 +62,7 @@ test_event_dispatch :: proc(t: ^testing.T) {
 	}
 
 	// Handler functions
-	handle_test_event_a :: proc(data: any, ctx_raw: rawptr) {
+	handle_test_event_a :: proc(data: any, ctx_raw: rawptr) -> (err: bool) {
 		event_data, ok := data.(test_event_a)
 		if !ok {
 			fmt.eprintln("Error: handle_test_event_a received unexpected data type")
@@ -78,6 +79,12 @@ test_event_dispatch :: proc(t: ^testing.T) {
 			ctx.call_count,
 			event_data.message,
 		)
+
+        // if ctx.call_count == 2 { // tested but needs to be disabled since log.error is considered as a test fail
+        //     err = true
+        // }
+
+        return
 	}
 
 	handle_test_event_b :: proc(data: any, ctx_raw: rawptr) {
@@ -169,6 +176,8 @@ test_event_dispatch :: proc(t: ^testing.T) {
 		ctx_b.last_id == "test_id",
 		fmt.aprintf("handler_b last_id was '%s', expected 'test_id'", ctx_b.last_id),
 	)
+
+    log.infof("%#v", bus)
 
 	// Test Case 2: Unsubscribe
 	err = unsubscribe_adv(bus, handle_test_event_a, ctx_a2, typeid_of(test_event_a))

@@ -6,7 +6,20 @@ import "core:log"
 import "core:sync"
 
 // signature of the subscriber callback function
-subscriber_callback :: proc(data: any, ctx: rawptr)
+subscriber_callback :: union {
+	subscriber_callback_no_return,
+	subscriber_callback_return,
+	subscriber_callback_pure_no_return,
+	subscriber_callback_pure_return,
+}
+
+// this signature is for subscribers that do not care about signaling error states
+subscriber_callback_no_return :: proc(data: any, ctx: rawptr)
+// this signature allows for a boolean return, if this value is true the event_bus will become aware of an "error state"
+subscriber_callback_return :: proc(data: any, ctx: rawptr) -> (report_error: bool)
+// "pure" callback version, they have no side-effects for functional programming, this means no context passed to them
+subscriber_callback_pure_no_return :: proc(data: any)
+subscriber_callback_pure_return :: proc(data: any) -> (report_error: bool)
 
 // holds a registered subscriber
 subscriber :: struct {
@@ -43,6 +56,8 @@ event_error :: enum {
 	INTERNAL_SUBSCRIBER_MANAGEMENT_ERROR,
 	// the event bus passed can not be used by the procedure, this typically means the event bus is corrupted
 	INVALID_BUS_ERROR,
+	// returned if a context is registered along side a pure (no context) subscriber
+	NON_NIL_CONTEXT_FOR_A_PURE_SUBSCIBER_ERROR,
 }
 
 // used to create a new event bus and allocate it on the heap
@@ -60,7 +75,7 @@ destroy_event_bus :: proc(bus: ^event_bus) {
 	free(bus)
 }
 
-// subscribes to an event using a callback function with context
+// subscribes to an event using a callback function with context, to subscribe a pure function with no context pass nil as ctx
 subscribe :: proc(
 	bus: ^event_bus,
 	callback: subscriber_callback,
@@ -72,6 +87,12 @@ subscribe :: proc(
 ) {
 	sync.lock(&bus.mu)
 	defer sync.unlock(&bus.mu)
+
+	if (type_of(callback) == subscriber_callback_pure_no_return ||
+		   type_of(callback) == subscriber_callback_pure_return) &&
+	   ctx != nil {
+		return -1, .NON_NIL_CONTEXT_FOR_A_PURE_SUBSCIBER_ERROR
+	}
 
 	sub := subscriber{}
 	sub.callback = callback
@@ -90,7 +111,7 @@ subscribe :: proc(
 	if .DEBUG_LOGGING in bus.options {
 		log.infof(
 			"subscriber: %#v, successfully registered on event: %#v, with context: %#v",
-			callback,
+			sub_id,
 			event,
 			typeid_of(T),
 		)
@@ -109,11 +130,13 @@ unsubscribe_adv :: proc(
 ) {
 	sync.lock(&bus.mu)
 	defer sync.unlock(&bus.mu)
+    id: int
 
 	if event not_in bus.subscribers {return .UNREGISTERED_EVENT_ERROR}
 	subs := bus.subscribers[event]
 	for sub, i in subs {
 		if sub.callback == callback && sub.ctx == ctx {
+            id = sub.id
 			if !remove_at(
 				&bus.subscribers[event],
 				i,
@@ -125,7 +148,7 @@ unsubscribe_adv :: proc(
 	if .DEBUG_LOGGING in bus.options {
 		log.infof(
 			"subscriber: %#v with context: %#v, successfully removed from event: %#v",
-			callback,
+			id,
 			typeid_of(T),
 			event,
 		)
@@ -237,9 +260,26 @@ internal_publish :: proc(
 	err: Maybe(event_error),
 ) {
 	for sub in subs {
-		sub.callback(data, sub.ctx)
-		if .DEBUG_LOGGING in bus.options {
-			log.infof("dispatched subscriber: %#v for event: %#v", sub.callback, typeid_of(T))
+		err: bool
+		switch callback in sub.callback {
+		case subscriber_callback_no_return:
+			callback(data, sub.ctx)
+		case subscriber_callback_return:
+			err = callback(data, sub.ctx)
+        case subscriber_callback_pure_no_return:
+            callback(data)
+        case subscriber_callback_pure_return:
+            err = callback(data)
+		}
+
+		if .DEBUG_LOGGING in bus.options && err == false {
+			log.infof("dispatched subscriber: %#v for event: %#v", sub.id, typeid_of(T))
+		} else if .DEBUG_LOGGING in bus.options && err == true {
+			log.errorf(
+				"subscriber %#v for event %#v, repoted and error state during dispatch",
+				sub.id,
+				typeid_of(T),
+			)
 		}
 	}
 	return
@@ -247,9 +287,9 @@ internal_publish :: proc(
 
 // returns an array of registered event typeids
 get_registered_events :: proc(bus: ^event_bus) -> (events: [dynamic]typeid) {
-    sync.lock(&bus.mu)
+	sync.lock(&bus.mu)
 	defer sync.unlock(&bus.mu)
-    
+
 	for event in bus.subscribers {
 		append(&events, event)
 	}

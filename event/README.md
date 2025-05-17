@@ -32,7 +32,8 @@ main :: proc() {
         call_count = 0
     }
 
-    // a subscriber has to match this signature
+    // a subscriber has to match this signature or proc(data: any, ctx_ptr: rawptr) -> (report_error: bool)
+    // where the bool return should be true to signify an error state
     subscriber :: proc(data: any, ctx_ptr: rawptr) {
         event, ok := data.(event_struct)
         if !ok { /* generally this should never happen, but it's good practice to check */ }
