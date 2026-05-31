@@ -12,3 +12,10 @@ If you need more than 1 or 2 files, or want an even simpler solution, just add t
 
 Yes, if I write code in "library mode" i typically leave some mildly informative code comments around, and each directory in this repo
 will have a `README` inside explaining what it contains.
+
+## list of libs
+
+- [bimap](/bimap): odin implementation of a bidirectional map
+- [event](/event): odin implementation of a simple type safe event system
+- [std_types](/std_types): C/C++ std type definitions with no includes
+- [tree](/tree): odin implementation of a generic tree
