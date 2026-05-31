@@ -5,6 +5,10 @@
 //
 // typedef is specifically used so that this header can be used in C and C++
 //
+// maximum and minimum values are defined for all numeric typed defined in this
+// header, the simpler way to access them is through the convenience macros
+// max_of and min_of
+//
 // if the language version supports some kind of static_assert, width checks are
 // also provided for the defined types
 
@@ -68,9 +72,75 @@ typedef __SIZE_TYPE__ usize;
 #error "std_types.h does not support this compiler"
 #endif
 
+// numeric limits for integer types
+#define i8_min (-128)
+#define i8_max (127)
+
+#define u8_min (0)
+#define u8_max (255)
+
+#define i16_min (-32768)
+#define i16_max (32767)
+
+#define u16_min (0)
+#define u16_max (65535)
+
+#define i32_min (-i32_max - 1)
+#define i32_max (2147483647)
+
+#define u32_min (0)
+#define u32_max (4294967295U)
+
+#define i64_min (-i64_max - 1)
+#define i64_max (9223372036854775807)
+
+#define u64_min (0)
+#define u64_max (18446744073709551615ULL)
+
+// numeric limits for floating point types
+#define f32_min (1.175494351e-38F)
+#define f32_max (3.402823466e+38F)
+
+#define f64_min (2.2250738585072014e-308)
+#define f64_max (1.7976931348623158e+308)
+
+// numeric limits for pointer types
+#if defined(STD_TYPES_ARCH_64BIT)
+#define isize_min i64_min
+#define isize_max i64_max
+
+#define usize_min u64_min
+#define usize_max u64_max
+
+#define intptr_min i64_min
+#define intptr_max i64_max
+
+#define uintptr_min u64_min
+#define uintptr_max u64_max
+#else
+#define isize_min i32_min
+#define isize_max i32_max
+
+#define usize_min u32_min
+#define usize_max u32_max
+
+#define intptr_min i32_min
+#define intptr_max i32_max
+
+#define uintptr_min u32_min
+#define uintptr_max u32_max
+#endif
+
+// type limit macros, only work with numeric types defined in this header
+#define max_of(type) type##_max
+#define min_of(type) type##_min
+
 // define to define `byte` type in the global scope for convenience
 #if defined(DEFINE_BYTE)
 typedef u8 byte;
+
+#define byte_min u8_min
+#define byte_max u8_max
 #endif
 
 // C parity with C++

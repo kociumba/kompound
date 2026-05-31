@@ -6,6 +6,9 @@ The types are named in a way more closely resembling newer languages e.g. i64, f
 
 If you want to define a `byte` type in the global scope as a `u8`,  define `DEFINE_BYTE` before including this header
 
+Numeric limits are defined for all types provided by the header, they can be accessed as `[type]_max/_min` or
+through the convenience macros `max_of()` and `min_of()`
+
 The header also includes some compile time checks for the width of the defined types, these are active only
 if you version of C or C++ supports some kind of `static_assert`
 
