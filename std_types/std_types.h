@@ -15,9 +15,11 @@
 #ifndef STD_TYPES_H
 #define STD_TYPES_H
 
-#if (defined(__LP64__) || defined(_LP64) || defined(_WIN64) ||                 \
-     (defined(__x86_64__) && !defined(__ILP32__)) || defined(__aarch64__) ||   \
-     defined(__ppc64__) || defined(__powerpc64__) ||                           \
+#define STD_TYPES_VERSION 1  // bump to signal new features, detectable by downstream
+
+#if (defined(__LP64__) || defined(_LP64) || defined(_WIN64) ||                                     \
+     (defined(__x86_64__) && !defined(__ILP32__)) || defined(__aarch64__) || defined(__ppc64__) || \
+     defined(__powerpc64__) ||                                                                     \
      (defined(__riscv) && defined(__riscv_xlen) && (__riscv_xlen == 64)))
 #define STD_TYPES_ARCH_64BIT
 #endif
@@ -163,12 +165,12 @@ typedef _Bool bool;
 #endif
 
 #if defined(__cplusplus) && (__cplusplus >= 201103L)
-#define STD_TYPES_size_assert(type, size)                                      \
-  static_assert(sizeof(type) == size, #type " is not " #size " byte(s)")
+#define STD_TYPES_size_assert(type, size) \
+    static_assert(sizeof(type) == size, #type " is not " #size " byte(s)")
 #elif defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L)
 
-#define STD_TYPES_size_assert(type, size)                                      \
-  _Static_assert(sizeof(type) == size, #type " is not " #size " byte(s)")
+#define STD_TYPES_size_assert(type, size) \
+    _Static_assert(sizeof(type) == size, #type " is not " #size " byte(s)")
 #endif
 
 #if defined(STD_TYPES_size_assert)
@@ -208,4 +210,4 @@ STD_TYPES_size_assert(bool, 1);
 #undef STD_TYPES_ARCH_64BIT
 #endif
 
-#endif // STD_TYPES_H
+#endif  // STD_TYPES_H

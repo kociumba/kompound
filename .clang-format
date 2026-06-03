@@ -1,0 +1,21 @@
+# for C/C++ code int the repo
+
+Language: Cpp
+
+BasedOnStyle: Chromium
+
+IndentWidth: 4
+UseTab: Never
+
+BreakBeforeBraces: Attach
+ColumnLimit: 100
+ReflowComments: false
+
+BinPackArguments: false
+BinPackParameters: OnePerLine
+AlignAfterOpenBracket: DontAlign
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortFunctionsOnASingleLine: All
+AllowShortBlocksOnASingleLine: Always
+AllowShortEnumsOnASingleLine: true
+BreakAfterReturnType: None

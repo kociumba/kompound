@@ -17,5 +17,5 @@ will have a `README` inside explaining what it contains.
 
 - [bimap](/bimap): odin implementation of a bidirectional map
 - [event](/event): odin implementation of a simple type safe event system
-- [std_types](/std_types): C/C++ std type definitions with no includes
+- [std_types](/std_types): C/C++ std type definitions with no dependencies
 - [tree](/tree): odin implementation of a generic tree

@@ -26,9 +26,9 @@ check: $(TARGET)
 
 clean:
 ifeq ($(OS),Windows_NT)
-	-powershell -NoProfile -Command "Remove-Item -ErrorAction SilentlyContinue $(TARGET)"
+	-$(if $(TARGET),powershell -NoProfile -Command "Remove-Item -ErrorAction SilentlyContinue '$(TARGET)'")
 else
-	-rm -f $(TARGET)
+	-$(if $(TARGET),rm -f '$(TARGET)')
 endif
 
 test: clean all check
