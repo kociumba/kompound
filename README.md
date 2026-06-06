@@ -1,11 +1,12 @@
 # kompound
 
 This repo serves as a general collection of useful libraries and one off components I made.
-For now this is only odin, but it will eventually probably contain all languages I use that don't have package mangers.
+
+These libs are mostly going to be single file/header
 
 ## how to use this ?
 
-If you want to use any of this code in your projects, the esiest way is to just copy and paste the file with it. 
+If you want to use any of this code in your projects, the easiest way is to just copy and paste the file with it. 
 If you need more than 1 or 2 files, or want an even simpler solution, just add this repo as a git submodule to yours. 
 
 ## any docs ?
