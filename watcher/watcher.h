@@ -1,28 +1,73 @@
-// this header provides a cross-platform abstraction for watching for file or directory changes
-//
-// it is written in the style of a header only library which means before using it you need to
-//
-// #define WATCHER_IMPLEMENTATION
-// #include "watcher.h"
-//
-// in exactly one c/c++ file
-//
-// the library is written in c, but supports some specific c++ features if used with it
-//
-// std lib includes are kept to an absolute minimum
-//
-// NOTE: it is recommended to compile the implementation file as c code due to the use of `volatile`
-// including files can still be be c++
-//
-// ===================================
-// Poll thread API:
-//
-// Currently there are no guarantees of thread safety, all synchronization duties are left up to
-// the consumer of this library, this is to save on the complexity of the threading code
-//
-// The threaded api is mostly provided as aa convenience and not as a fully fledged feature
-// If you need full strict synchronization you are probably better off implementing your own version,
-// or if using this in a graphical application just simply polling for changes in your main loop
+/* watcher.h - https://github.com/kociumba/kompound
+
+A minimal, cross platform file/directory watcher header only C library
+with optional C++ features. stdlib includes are kept to an absolute minimum.
+
+SIMPLE EXAMPLE:
+    ```c
+    #define WATCHER_IMPLEMENTATION
+    #include "watcher.h"
+    #include <stdio.h>
+
+    void on_change(const char* path, void* ud) {
+        (void)ud;
+        printf("changed: %s\n", path);
+    }
+
+    int main(void) {
+        Watcher* w = watcher_watch(".", on_change, NULL);
+        if (!w) return 1;
+
+        int running = 10;
+        while (running) {
+            watcher_poll();
+            running--;
+        }
+
+        watcher_stop(w);
+        watcher_cleanup();
+        return 0;
+    }
+    ```
+
+USAGE:
+    Before using this library, define the implementation macro in exactly
+    one C/C++ source file:
+
+        #define WATCHER_IMPLEMENTATION
+        #include "watcher.h"
+
+    NOTE: It is recommended to compile the implementation file as C due to
+        the use of `volatile`. Files that only include the header may be C++.
+
+LIMITATIONS:
+    Some functionality is intentionally limited to maintain consistency and
+    simplicity across platforms. Notable unsupported features include:
+
+        - Recursive directory watching
+        - Granular event types
+
+THREAD SAFETY:
+    watcher.h provides a poll thread api, but it is more of a convenience and
+    demonstration of the design than a fully fledged implementation
+
+    The api is explicitly unsafe, and adding or removing watchers
+    while the poll thread is running is likely to cause race conditions.
+    All synchronization is the responsibility of the consumer.
+
+REDEFINABLE MACROS:
+
+    You can define these macros before including watcher.h to override some default behaviour
+
+    - WATCHER_malloc: defines the malloc implementation watcher.h will use
+    - WATCHER_free: defines the free implementation watcher.h will use
+    - WATCHER_memset: defines the memset implementation watcher.h will use
+    - WATCHER_memcpy: defines the memcpy implementation watcher.h will use
+    - WATCHER_BUFFER_SIZE: defines the size of the event buffer in Watcher (needs to be DWORD aligned on windows)
+    - WATCHER_POLL_THREAD_FREQ_MS: defines the time the thread poll sleeps between polling in ms
+    - __bool_true_false_are_defined: checked to see if a custom definitions of bool and true/false exists
+    - WATCHER_ERROR_PRINT(msg, ...): defines the function watcher.h uses to print error info, needs to handle printf formatting
+*/
 
 #ifndef WATCHER_H
 #define WATCHER_H
@@ -85,11 +130,12 @@
 #endif
 
 // platform specific includes
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 #define WIN32_LEAN_AND_MEAN
-#include "windows.h"
+#include <windows.h>
 #elif defined(__APPLE__)
 #include <pthread.h>
+#error "macos support is currntly not implemented in watcher.h"
 #elif defined(__linux__)
 #include <errno.h>
 #include <fcntl.h>
@@ -100,7 +146,7 @@
 #include <unistd.h>
 #else
 #error "watcher.h does not support this platform"
-#endif  // #if defined(_MSC_VER)
+#endif  // #if defined(_WIN32)
 
 // definitions
 #if defined(__cplusplus)
@@ -108,27 +154,28 @@ extern "C" {
 #endif  // #if defined(__cplusplus)
 
 /*
- * Callback invoked when a watched file or directory changes.
- *
- * ### Parameters
- * - path — The path of the file/directory that triggered the event, a NULL value
- *      signals some missed/leaked events, in most cases you will want to re scan is this happens.
- * - user_data — The opaque pointer originally passed to `watcher_watch()`.
+    Callback invoked when a watched file or directory changes.
+
+    # Parameters
+        - path: The path of the file/directory that triggered the event, a NULL value
+            signals some missed/leaked events, in most cases you will want to re scan
+            everything if this happens.
+        - user_data: The opaque pointer originally passed to `watcher_watch()`.
 */
 typedef void (*watcher_callback)(const char* path, void* user_data);
 
 /*
- * The core watcher type, the consumer does not need to manage this struct,
- * but it is left in the public api for any specific cases you might have
- *
- * > NOTE: This struct contains platform specific fields and fields that might change
- * >    between versions, the too fields that are meant to be changed by the user are:
- * >        - watcher_callback cb - use to exchange the callback for this watcher on the fly
- * >        - void* ud - use to exchange the user data for this watcher on the fly
- * >
- * >   all other fields are mostly considered internal and using them may have
- * >   unforeseen consequences
- */
+    The core watcher type, the consumer does not need to manage this struct,
+    but it is left in the public api for any specific cases you might have
+
+    NOTE: This struct contains platform specific fields and fields that might change
+        between versions, the two fields deliberately exposed to the user are:
+            - watcher_callback cb: use to exchange the callback for this watcher on the fly
+            - void* ud: use to exchange the user data for this watcher on the fly
+
+        all other fields are mostly considered internal and using them may have
+        unforeseen consequences
+*/
 typedef struct Watcher {
     int path_len;
     char* path;
@@ -136,7 +183,7 @@ typedef struct Watcher {
     void* ud;
 
     // platform specific data
-#if defined(_MSC_VER)
+#if defined(_WIN32)
     HANDLE hDir;
     OVERLAPPED overlapped;
     BYTE buffer[WATCHER_BUFFER_SIZE];
@@ -149,65 +196,65 @@ typedef struct Watcher {
     int watch_fd;
     char buffer[WATCHER_BUFFER_SIZE];
     int bytesReturned;
-#endif  // #if defined(_MSC_VER)
+#endif  // #if defined(_WIN32)
 } Watcher;
 
 /*
- * Frees all memory allocated for any watchers, invalidates all Watcher* pointers,
- * and stops all watchers. If the poll thread is running, this will also stop it.
- *
- * Most of the time this should be called at the end of a program in the quit procedure.
- * If not, be careful of invalid Watcher* pointers.
- */
+    Frees all memory allocated for any watchers, invalidates all Watcher* pointers,
+    and stops all watchers. If the poll thread is running, this will also stop it.
+
+    Most of the time this should be called at the end of a program in the quit procedure.
+    If not, be careful of invalid Watcher* pointers.
+*/
 extern void watcher_cleanup();
 
 /*
- * Begins watching a file or directory for changes.
- *
- * The watcher is managed by the library and will be freed when stopping the watch
- * or quitting the library.
- *
- * ### Parameters
- * - path — The path of the file or directory to watch.
- * - cb — The callback to invoke when a change is detected.
- * - user_data — An opaque pointer passed through to the callback.
- *
- * ### Returns
- * A pointer to the created Watcher, or NULL on failure.
- */
+    Begins watching a file or directory for changes.
+
+    The watcher is managed by the library and will be freed when stopping the watch
+    or quitting the library.
+
+    # Parameters
+        - path: The path of the file or directory to watch.
+        - cb: The callback to invoke when a change is detected.
+        - user_data: An opaque pointer passed through to the callback.
+
+    # Returns
+        A pointer to the created Watcher, or NULL on failure.
+*/
 extern Watcher* watcher_watch(const char* path, watcher_callback cb, void* user_data);
 
 /*
- * Stops a previously created watcher and frees its resources.
- *
- * ### Parameters
- * - watcher — The Watcher* returned by `watcher_watch()`.
- *
- * ### Returns
- * `true` if the watcher was found and stopped, `false` otherwise.
- */
+    Stops a previously created watcher and frees its resources.
+
+    # Parameters
+        - watcher: The Watcher* returned by `watcher_watch()`.
+
+    # Returns
+        `true` if the watcher was found, stopped and freed, `false` otherwise.
+*/
 extern bool watcher_stop(Watcher* watcher);
 
 /*
- * Polls data from the os for watcher changes.
- *
- * This must be called periodically if not using the background poll thread.
- */
+    Polls data from the os for watcher changes.
+
+    This must be called periodically if not using the background poll thread.
+*/
 extern void watcher_poll();
 
 /*
- * Starts a background thread that calls `watcher_poll()` automatically.
- *
- * After calling this, you do not need to manually call `watcher_poll()`.
- * Use `watcher_stop_poll_thread()` to shut it down.
- */
+    Starts a background thread that calls `watcher_poll()` automatically.
+
+    After calling this, you do not need to manually call `watcher_poll()`.
+    Use `watcher_stop_poll_thread()` to shut it down.
+*/
 extern void watcher_run_poll_thread();
 
 /*
- * Stops the background poll thread started by `watcher_run_poll_thread()`.
- *
- * This blocks until the thread has fully exited.
- */
+    Stops the background poll thread started by `watcher_run_poll_thread()`.
+
+    This blocks until the thread has fully exited.
+*/
 extern void watcher_stop_poll_thread();
 
 #if defined(__cplusplus)
@@ -285,7 +332,7 @@ static void append_watcher(WatcherNode* node) {
 }
 
 // c implementations
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 
 void watcher_platform_teardown(Watcher* w) {
     if (!w) return;
@@ -481,10 +528,16 @@ PollResult watcher_platform_poll_one(Watcher* w) {
 
 void watcher_platform_teardown(Watcher* w) {
     if (!w) return;
+    if (w->watch_fd >= 0) {
+        inotify_rm_watch(w->inotify_fd, w->watch_fd);
+        w->watch_fd = -1;
+    }
+
     if (w->inotify_fd >= 0) {
         close(w->inotify_fd);
         w->inotify_fd = -1;
     }
+
     w->watch_fd = -1;
 }
 
@@ -585,10 +638,10 @@ PollResult watcher_platform_poll_one(Watcher* w) {
     return FULL;
 }
 
-#endif  // #if defined(_MSC_VER)
+#endif  // #if defined(_WIN32)
 
 // thread api implementations
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 static HANDLE watcher_poll_thread = NULL;
 static WATCHER_volatile bool watcher_poll_thread_running = false;
 
@@ -659,7 +712,7 @@ void watcher_stop_poll_thread() {
     watcher_poll_thread = NULL;
 }
 
-#endif  // #if defined(_MSC_VER)
+#endif  // #if defined(_WIN32)
 
 // api implementations
 void watcher_cleanup() {
@@ -727,13 +780,13 @@ void watcher_poll() {
 
 // c++ specific implementations
 #if defined(__cplusplus)
-#if defined(_MSC_VER)
+#if defined(_WIN32)
 
 #elif defined(__APPLE__)
 
 #elif defined(__linux__)
 
-#endif  // #if defined(_MSC_VER)
+#endif  // #if defined(_WIN32)
 #endif  // #if defined(__cplusplus)
 
 #endif  // #if defined(WATCHER_IMPLEMENTATION)
