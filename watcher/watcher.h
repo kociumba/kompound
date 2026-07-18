@@ -47,6 +47,9 @@ LIMITATIONS:
         - Recursive directory watching
         - Granular event types
 
+    MacOS is currently not implemented, using this library on macos will invoke
+    placeholder code which might crash or simply do nothing
+
 THREAD SAFETY:
     watcher.h provides a poll thread api, but it is more of a convenience and
     demonstration of the design than a fully fledged implementation
