@@ -18,6 +18,7 @@ will have a `README` inside explaining what it contains.
 
 - [bimap](/bimap): odin implementation of a bidirectional map
 - [event](/event): odin implementation of a simple type safe event system
+- [ok](/ok): c++20 single header implementation of a go style `result` type
 - [std_types](/std_types): C/C++ std type definitions with no dependencies
 - [tree](/tree): odin implementation of a generic tree
 - [watcher](/watcher): c99 implementation of a cross-platform file watcher api
