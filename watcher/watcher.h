@@ -56,7 +56,7 @@ THREAD SAFETY:
 
     The api is explicitly unsafe, and adding or removing watchers
     while the poll thread is running is likely to cause race conditions.
-    All synchronization is the responsibility of the consumer.
+    All synchronization is the responsibility of the user.
 
 REDEFINABLE MACROS:
 
@@ -70,6 +70,10 @@ REDEFINABLE MACROS:
     - WATCHER_POLL_THREAD_FREQ_MS: defines the time the thread poll sleeps between polling in ms
     - __bool_true_false_are_defined: checked to see if a custom definitions of bool and true/false exists
     - WATCHER_ERROR_PRINT(msg, ...): defines the function watcher.h uses to print error info, needs to handle printf formatting
+
+TODO/ROADMAP:
+
+    make the library safer - check all return values from system apis
 */
 
 #ifndef WATCHER_H
